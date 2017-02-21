@@ -3,6 +3,7 @@
  */
 public class Main {
 
+    private Model game = new Model();
 
     public static void main(String[] args) {
 
