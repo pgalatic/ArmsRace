@@ -348,6 +348,18 @@ public class Player {
         return decisions;
     }
 
+    @Override
+    public boolean equals(Object o){
+        if (!(o instanceof Player)){
+            return false;
+        }
+        if (((Player)o).ID.equals(ID)){
+            return true;
+        }
+
+        return false;
+    }
+
     /** A class representing an Opponent, which is distinct from a Player only
      * insofar as the computer having to make decisions about which Players to
      * prioritize spying on, sabotaging, or launching nuclear weapons against.
