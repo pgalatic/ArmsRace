@@ -15,14 +15,26 @@ public class Model {
         RESEARCH, ESPIONAGE, SABOTAGE, NUCLEAR, NONE
     }
 
-    private final int DEFAULT_NUM_OPPONENTS = 2;
+	// CONSTANTS
 
-    private Random rand = new Random();
-    private Scanner in = new Scanner(System.in);
-    private HashSet<Player> players = new HashSet<>();
+    private final int DEFAULT_NUM_OPPONENTS = 2;
+    private final Random rand = new Random();
+    private final Scanner in = new Scanner(System.in);
+
+	// STATE
+
+	private HashSet<Player> players = new HashSet<>();
+	private ArrayList<Player> winners = new ArrayList<>();
     private int numOpponents = 0;
 
-    public Model(ArrayList<String> opponentNames){
+	/** 
+	 *	Constructor. Initializes the base state for the game, including the 
+	 *	name of the country representing the user, the number of opponents and 
+	 *	the names of those opponents. It also initializes the opponent lists.
+	 *	@param opponentNameList: a list of possible opponent names, randomly 
+	 *			selected
+	 */
+    public Model(ArrayList<String> opponentNameList){
         String name = null;
 
         while (name == null) {
@@ -35,8 +47,9 @@ public class Model {
             }
         }
 
-        if (opponentNames.contains(name)){
-            opponentNames.remove(name);
+		// The computer won't choose a name that the player has already chosen.
+        if (opponentNameList.contains(name)){
+            opponentNameList.remove(name);
         }
         Player playerOne = new Player(name, false);
         players.add(playerOne);
@@ -60,8 +73,11 @@ public class Model {
         System.out.print("Your opponents are: ");
         String currName;
         for (int x = 0; x < numOpponents; x++){
-            currName = opponentNames.get(rand.nextInt(opponentNames.size()));
-            opponentNames.remove(currName);
+			if (oppoentNameList.isEmpty()){ currname = "NULL"; } // too few names
+            else {
+				currName = opponentNames.get(rand.nextInt(opponentNameList.size()));
+            	opponentNameList.remove(currName);
+			}
             players.add(new Player(currName, true));
             if ((numOpponents - x) == 2){
                 System.out.printf("%s, and");
@@ -70,7 +86,83 @@ public class Model {
             }
             System.out.print(String.format("%s, ", currName));
         }
+		System.out.println(".");
+
+		// Initialize opponent lists.
+		for (Player p : players){
+			HashSet<Player> pOpponents = new HashSet<>();
+			pOpponents.addAll(players);
+			pOpponents.remove(p);
+			p.addOpponents(pOpponents);
+		}
+
     }
+
+	/**
+	 * Runs the game. Turns proceed in this order:
+	 * 	1) Evaluate whether or not the game has been won. If it has, announce
+	 *		the winner and quit.
+	 *	2) Let the player take their turn, taking user input and then executing
+	 *		whatever actions were chosen.
+	 *	3) Execute the CPU's turns.
+	 *	4) Announce the results, then repeat.
+	 */
+	public void runGame(){
+
+		Decision d1;
+		Decision d2;
+		int userInput = 0;
+		int curr_turn;
+
+		while (true){
+			curr_turn++;
+
+			// Evaluate which players have won, if any
+			for (Player p : players){
+				if (p.getResearchPoints >= 10){
+					winners.add(p);
+				}
+			}
+			// If any players have won, quit, UNLESS there's a tie
+			if (winners.size() > 0){
+				if (winners.size() > 1){
+					System.out.println("There's a tie!");
+					breaktie(winners);
+				}
+				System.out.println("We have a winner!");
+				break;
+			}
+
+			System.out.println("\n------------------------------");
+			System.out.println(String.format("-----------TURN %d-------------", curr_turn));
+			System.out.println("------------------------------\n");
+
+			System.out.println("\tChoose an action.");
+			if (curr_turn == 5){ System.out.println("The NUCLEAR option is now available."); }
+			if (curr_turn < 5){
+				System.out.println("\tRESEARCH\t|\tESPIONAGE\t|\tSABOTAGE");
+				System.out.println("\t\t0\t\t|\t\t1\t\t|\t\t2");
+			}else{
+				System.out.println("\tRESEARCH\t|\tESPIONAGE\t|\tSABOTAGE\t|\tNUCLEAR");
+				System.out.println("\t\t0\t\t|\t\t1\t\t|\t\t2\t\t|\t\t3");
+			}
+			
+			while (userInput < 0 || userInput > 3){
+				System.out.println("Please choose your first action.");
+				userInput = in.nextInt();
+			}
+
+			switch (userInput){
+				case 0:
+					//TODO
+			}
+
+		}
+
+		System.out.println("The winner is: " + winners.get(0).getID() + "!");
+		System.out.println("The game will now exit.");
+	}
+
 
 }
 

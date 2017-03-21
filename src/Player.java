@@ -1,5 +1,3 @@
-import com.sun.javaws.exceptions.InvalidArgumentException;
-
 import java.util.*;
 
 /**
@@ -29,7 +27,6 @@ public class Player {
     private String ID;
 
     private boolean computer;
-    private boolean victory = false;
 
     private int researchPoints = 0;
     private HashSet<Opponent> opponents;
@@ -73,7 +70,8 @@ public class Player {
      * they should be.
      *
      * @param d1: the Player's first decision
-     * @param d2: the player's second decision */
+     * @param d2: the player's second decision 
+     */
     public void playerChooseDecision(final Model.Decision d1, final Model.Decision d2){
         if (computer){
             throw new InputMismatchException("Calling playerChooseDecision() on a CPU player."){};
@@ -177,7 +175,7 @@ public class Player {
             // NUCLEAR DECISION PATH
             if (    turn >= TURN_NUCLEAR_AVAILABLE &&
                     o.threatLevel > BASE_NUCLEAR_THREAT_THRESHHOLD){
-                sabotageWeight = lowerSabotageWeight(sabotageWeight);
+                sabotageWeight = lowerWeight(sabotageWeight);
                 currNuclearValue += o.threatLevel;
                 nuclearWeight += currNuclearValue;
                 if (currNuclearValue > maxNuclearValue){
@@ -332,8 +330,8 @@ public class Player {
         return result;
     }
 
-    /** Lowers the weight of Sabotaging another player. */
-    private double lowerSabotageWeight(double weight){
+    /** Lowers the weight of an attribute. */
+    private double lowerWeight(double weight){
         return weight * BASE_LOWER_ATTRIBUTE_FACTOR;
     }
 
@@ -341,6 +339,11 @@ public class Player {
     public int getResearchPoints(){
         return researchPoints;
     }
+
+	/** Returns the ID of the Player. */
+	public String getID(){
+		return ID;
+	}
 
     /** Returns the pair of Decision to the Model for reporting purposes. */
     public Model.Decision[] getDecisions(){
