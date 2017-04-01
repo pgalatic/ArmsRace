@@ -1,6 +1,7 @@
 import java.io.IOException;
 import java.util.*;
 import java.util.logging.FileHandler;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -14,18 +15,18 @@ public class Player {
 
     //  CONSTANTS
 
-    private final Random rand = new Random();
+    private static final Random rand = new Random();
     private static final Logger LOGGER = Logger.getLogger( Player.class.getName() );
     private static FileHandler HANDLER;
 
-    private final int TOTAL_TURNS = 10;
-    private final int TURN_NUCLEAR_AVAILABLE = 5;
-    private final int BASE_NUKE_DEFENSE = 0;
-    private final int BASE_WEIGHT = 5;
-    private final int BASE_ADD_THREAT = 2;
-    private final int BASE_ADD_EXTREME_THREAT = 5;
-    private final int BASE_NUCLEAR_THREAT_THRESHHOLD = 10;
-    private final double BASE_LOWER_ATTRIBUTE_FACTOR = 0.5;
+    private static final int TOTAL_TURNS = 10;
+    private static final int TURN_NUCLEAR_AVAILABLE = 5;
+    private static final int BASE_NUKE_DEFENSE = 0;
+    private static final int BASE_WEIGHT = 5;
+    private static final int BASE_ADD_THREAT = 2;
+    private static final int BASE_ADD_EXTREME_THREAT = 5;
+    private static final int BASE_NUCLEAR_THREAT_THRESHHOLD = 10;
+    private static final double BASE_LOWER_ATTRIBUTE_FACTOR = 0.5;
 
     //  STATE
 
@@ -40,9 +41,9 @@ public class Player {
     private Opponent sabotageTargetOne;
     private Opponent sabotageTargetTwo;
     private Opponent nuclearTarget;
-    private HashSet<Opponent> recentlySabotagedBy;
-    private HashSet<Opponent> recentlyNukedBy;
-    private HashSet<Opponent> recentlyNukeFailedBy;
+    private HashSet<Opponent> recentlySabotagedBy = new HashSet<>();
+    private HashSet<Opponent> recentlyNukedBy = new HashSet<>();
+    private HashSet<Opponent> recentlyNukeFailedBy = new HashSet<>();
 
     private Model.Decision decisionOne;
     private Model.Decision decisionTwo;
@@ -74,10 +75,10 @@ public class Player {
      * @param opponents: the set of Players to add to this Player's list
      *      of adversaries
      */
-    public void addOpponents(HashSet<Player> opponents){
-        if (opponents == null){ opponents = new HashSet<>(); }
-        for (Player p : opponents){
-            opponents.add(p);
+    public void addOpponents(HashSet<Player> opp){
+        if (opponents == null){ opponents = new ArrayList<>(); }
+        for (Player p : opp){
+            opponents.add(new Opponent(p));
         }
     }
 
@@ -305,21 +306,32 @@ public class Player {
 
         if (    decisionOne == Model.Decision.NUCLEAR &&
                 decisionTwo == Model.Decision.NUCLEAR){
-                nuclearTarget.player.nukedBy(ID);
+                nuclearTarget.player.nukedBy(this.ID);
+
+                LOGGER.log(Level.FINE, "{0} chose NUCLEAR: {1}",
+                    new Object[]{this.ID, nuclearTarget.getID()});
         }else{
             // EXECUTE DECISION ONE
             switch (decisionOne){
                 case RESEARCH:
                     researchPoints++;
+
+                    LOGGER.log(Level.FINE, "{0} chose RESEARCH", this.ID);
                     break;
                 case ESPIONAGE:
                     espionageTargetOne.lastKnownResearchPoints =
                             espionageTargetOne.player.getResearchPoints();
                     espionageTargetOne = null;
+
+                    LOGGER.log(Level.FINE, "{0} chose ESPIONAGE: {1}",
+                            new Object[]{this.ID, espionageTargetOne.getID()});
                     break;
                 case SABOTAGE:
                     sabotageTargetOne.player.sabotagedBy(ID);
                     sabotageTargetOne = null;
+
+                    LOGGER.log(Level.FINE, "{0} chose SABOTAGE: {1}",
+                            new Object[]{this.ID, sabotageTargetOne.getID()});
                     break;
                 default:
                     throw new InputMismatchException("Bad decisionOne for " + ID){};
@@ -329,25 +341,25 @@ public class Player {
             switch (decisionTwo){
                 case RESEARCH:
                     researchPoints++;
+
+                    LOGGER.log(Level.FINE, "{0} chose RESEARCH", this.ID);
                     break;
                 case ESPIONAGE:
-                    if (espionageTargetOne != null){
-                        espionageTargetOne.lastKnownResearchPoints =
-                                espionageTargetOne.player.getResearchPoints();
-                    }else{
-                        espionageTargetTwo.lastKnownResearchPoints =
-                                espionageTargetTwo.player.getResearchPoints();
-                    }
+                    espionageTargetTwo.lastKnownResearchPoints =
+                            espionageTargetTwo.player.getResearchPoints();
+
+                    LOGGER.log(Level.FINE, "{0} chose ESPIONAGE: {1}",
+                            new Object[]{this.ID, espionageTargetTwo.getID()});
                     break;
                 case SABOTAGE:
-                    if (sabotageTargetOne != null){
-                        sabotageTargetOne.player.sabotagedBy(ID);
-                    }else{
-                        sabotageTargetTwo.player.sabotagedBy(ID);
-                    }
+                    sabotageTargetTwo.player.sabotagedBy(ID);
+
+                    LOGGER.log(Level.FINE, "{0} chose SABOTAGE: {1}",
+                            new Object[]{this.ID, sabotageTargetOne.getID()});
                     break;
                 default:
                     throw new InputMismatchException("Bad decisionTwo for " + ID){};
+
             }
 
         }
@@ -467,6 +479,8 @@ public class Player {
         private void threatDecay(){ threatLevel = (threatLevel * 5) / 6; }
 
         private void resetThreat(){ threatLevel = 0; }
+
+        public String getID(){ return player.getID(); }
 
     }
 

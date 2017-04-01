@@ -81,13 +81,13 @@ public class Model {
 			}
             COMplayers.add(new Player(currName, true));
             if ((numOpponents - x) == 2){
-                System.out.printf("%s, and");
+                System.out.printf("%s, and", currName);
             }else if ((numOpponents - x) == 1){
                 System.out.printf("%s.\n", currName);
+            }else {
+                System.out.print(String.format("%s, ", currName));
             }
-            System.out.print(String.format("%s, ", currName));
         }
-		System.out.println(".");
 
 		// Initialize opponent lists.
 		for (Player p : COMplayers){
@@ -115,8 +115,8 @@ public class Model {
 		int userInput = -1;
 		int curr_turn = 0;
 
-        Decision d1;
-        Decision d2;
+        Decision d1 = Decision.NONE;
+        Decision d2 = Decision.NONE;
 
         Player sabotageTarget;
         Player target;
@@ -139,7 +139,7 @@ public class Model {
 					System.out.println("There's a tie!");
 					breaktie(winners);
 				}
-				System.out.println("We have a winner!");
+				System.out.println(String.format("We have a winner: %s!", winners.get(0).getID()));
 				break;
 			}
 
@@ -152,10 +152,8 @@ public class Model {
 			if (curr_turn == 5){ System.out.println("The NUCLEAR option is now available."); }
 			if (curr_turn < 5){
 				System.out.println("\tRESEARCH (0)\t|\tESPIONAGE (1)\t|\tSABOTAGE (2)");
-				System.out.println("\t\t0\t\t|\t\t1\t\t|\t\t2");
 			}else{
 				System.out.println("\tRESEARCH (0)\t|\tESPIONAGE (1)\t|\tSABOTAGE (2)\t|\tNUCLEAR (3)");
-				System.out.println("\t\t0\t\t|\t\t1\t\t|\t\t2\t\t|\t\t3");
 			}
 			
 			// user selects actions for turn
@@ -183,10 +181,12 @@ public class Model {
                     d1 = Decision.NUCLEAR;
                     target = playerGetTarget();
                     playerOne.playerSetTarget(d1, target, true);
+                    break;
 			}
 
             if (userInput != 3){
                 // user selects actions for turn
+                userInput = -1;
                 while (userInput < 0 || userInput > 2){
                     System.out.println("Please choose your second action.");
                     userInput = in.nextInt();
@@ -206,6 +206,8 @@ public class Model {
                         playerOne.playerSetTarget(d2, target, false);
                         break;
                 }
+
+                playerOne.playerChooseDecision(d1, d2);
             }
 
             for (Player p : COMplayers){
