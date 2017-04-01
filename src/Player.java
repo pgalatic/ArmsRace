@@ -1,4 +1,7 @@
+import java.io.IOException;
 import java.util.*;
+import java.util.logging.FileHandler;
+import java.util.logging.Logger;
 
 /**
  * Class representing a player in the AI Arms Race game. Available functions
@@ -11,6 +14,10 @@ public class Player {
 
     //  CONSTANTS
 
+    private final Random rand = new Random();
+    private static final Logger LOGGER = Logger.getLogger( Player.class.getName() );
+    private static FileHandler HANDLER;
+
     private final int TOTAL_TURNS = 10;
     private final int TURN_NUCLEAR_AVAILABLE = 5;
     private final int BASE_NUKE_DEFENSE = 0;
@@ -20,8 +27,6 @@ public class Player {
     private final int BASE_NUCLEAR_THREAT_THRESHHOLD = 10;
     private final double BASE_LOWER_ATTRIBUTE_FACTOR = 0.5;
 
-    private final Random rand = new Random();
-
     //  STATE
 
     private String ID;
@@ -29,7 +34,7 @@ public class Player {
     private boolean computer;
 
     private int researchPoints = 0;
-    private HashSet<Opponent> opponents;
+    private ArrayList<Opponent> opponents;
     private Opponent espionageTargetOne;
     private Opponent espionageTargetTwo;
     private Opponent sabotageTargetOne;
@@ -42,7 +47,8 @@ public class Player {
     private Model.Decision decisionOne;
     private Model.Decision decisionTwo;
 
-    /** Constructor. Initializes state to provided values.
+    /**
+     * Constructor. Initializes state to provided values.
      *
      * @param ID: the name of the country this Player represents
      * @param computer: whether or not this player is a computer
@@ -50,9 +56,18 @@ public class Player {
     public Player(String ID, boolean computer){
         this.ID = ID;
         this.computer = computer;
+
+        try {
+            HANDLER = new FileHandler("log.txt");
+            LOGGER.addHandler(HANDLER);
+        } catch (IOException e){
+            e.printStackTrace();
+            assert(false);
+        }
     }
 
-    /** As not all opponents can be added until they are generated, this
+    /**
+     * As not all opponents can be added until they are generated, this
      * function is to be called by the Model once all Player objects are
      * initialized.
      *
@@ -66,7 +81,8 @@ public class Player {
         }
     }
 
-    /** Sets the Player's current Decisions to be whatever the human decides
+    /**
+     * Sets the Player's current Decisions to be whatever the human decides
      * they should be.
      *
      * @param d1: the Player's first decision
@@ -85,7 +101,41 @@ public class Player {
         decisionTwo = d2;
     }
 
-    /** Runs a simple weighted probability algorithm to have the computer make
+    /**
+     * Set a player's target to whomever the Player decides to mess with.
+     *
+     * @param decision: the particular nature of the Player's action
+     * @param target: the Player's target
+     * @param firstAction: whether this is the Player's first or second action
+     *                     (true if first, false if second)
+     * */
+    public void playerSetTarget(final Model.Decision decision, final Player target, boolean firstAction){
+        if (firstAction) {
+            switch (decision) {
+                case ESPIONAGE:
+                    espionageTargetOne = opponentLookup(target.ID);
+                    break;
+                case SABOTAGE:
+                    sabotageTargetOne = opponentLookup(target.ID);
+                    break;
+                case NUCLEAR:
+                    nuclearTarget = opponentLookup(target.ID);
+                    break;
+            }
+        }else{
+            switch (decision) {
+                case ESPIONAGE:
+                    espionageTargetTwo = opponentLookup(target.ID);
+                    break;
+                case SABOTAGE:
+                    sabotageTargetTwo = opponentLookup(target.ID);
+                    break;
+            }
+        }
+    }
+
+    /**
+     * Runs a simple weighted probability algorithm to have the computer make
      * a "reasonable" next move based on what it knows about the condition of
      * its Player opponents. It sets the Decision variables based on this
      * evaluation.
@@ -201,7 +251,8 @@ public class Player {
 
     }
 
-    /** Algorithm to choose a weighted result. Credit to Martin L on
+    /**
+     * Algorithm to choose a weighted result. Credit to Martin L on
      * Stackoverflow.
      *
      * https://stackoverflow.com/questions/6737283/weighted-randomness-in-java
@@ -227,16 +278,34 @@ public class Player {
     }
 
 
-    /** Simulates the passing of a turn, and changes the State of the Player
-     * based on what decisions were chosen. */
+    /**
+     * Simulates the passing of a turn, and changes the State of the Player
+     * based on what decisions were chosen.
+     */
     public void passTurn(){
+
+        // assert that we have valid targets
+        if (decisionOne == Model.Decision.ESPIONAGE){
+            assert(espionageTargetOne != null);
+        }else if (decisionOne == Model.Decision.SABOTAGE){
+            assert(sabotageTargetOne != null);
+        }else if (decisionOne == Model.Decision.NUCLEAR){
+            assert(nuclearTarget != null);
+        }
+
+        // skip nuclear in this branch because it takes up both actions
+        if (decisionTwo == Model.Decision.ESPIONAGE){
+            assert(espionageTargetTwo != null);
+        }else if (decisionTwo == Model.Decision.SABOTAGE){
+            assert(sabotageTargetTwo != null);
+        }
 
         // If nuclear, do this event chain
         // Otherwise, go on to execute the first decision, then the second
 
         if (    decisionOne == Model.Decision.NUCLEAR &&
                 decisionTwo == Model.Decision.NUCLEAR){
-            nuclearTarget.player.nukedBy(ID);
+                nuclearTarget.player.nukedBy(ID);
         }else{
             // EXECUTE DECISION ONE
             switch (decisionOne){
@@ -287,7 +356,10 @@ public class Player {
 
     }
 
-    /** Run when the Player is sabotaged by another Player.
+    /**
+     * Run when the Player is sabotaged by another Player. This function is
+     * inefficient, but the number of Opponents should be kept low enough
+     * for that not to matter.
      *
      * @param ID: for Opponent lookup purposes, to know who to blame
      */
@@ -299,7 +371,8 @@ public class Player {
         }
     }
 
-    /** Run when the Player is nuked by another Player.
+    /**
+     * Run when the Player is nuked by another Player.
      *
      * @param ID: for Opponent lookup purposes, to know who to blame
      */
@@ -318,8 +391,13 @@ public class Player {
         }
     }
 
+    /** Lowers the weight of an attribute. */
+    private double lowerWeight(double weight){
+        return weight * BASE_LOWER_ATTRIBUTE_FACTOR;
+    }
+
     /** Looks up an Opponent based on their name. */
-    private Opponent opponentLookup(String ID){
+    public Opponent opponentLookup(String ID){
         Opponent result = null;
         for (Opponent o : opponents){
             if (o.player.ID.equals(ID)){
@@ -328,11 +406,6 @@ public class Player {
             }
         }
         return result;
-    }
-
-    /** Lowers the weight of an attribute. */
-    private double lowerWeight(double weight){
-        return weight * BASE_LOWER_ATTRIBUTE_FACTOR;
     }
 
     /** Returns the current level of a Player's research points. */
@@ -367,7 +440,7 @@ public class Player {
      * insofar as the computer having to make decisions about which Players to
      * prioritize spying on, sabotaging, or launching nuclear weapons against.
      */
-    private class Opponent{
+    public class Opponent{
 
         private int turnsSinceLastEspionage = 0;
         private int lastKnownResearchPoints = 0;

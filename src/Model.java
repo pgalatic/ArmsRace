@@ -23,7 +23,8 @@ public class Model {
 
 	// STATE
 
-	private HashSet<Player> players = new HashSet<>();
+    private Player playerOne;
+	private HashSet<Player> COMplayers = new HashSet<>();
 	private ArrayList<Player> winners = new ArrayList<>();
     private int numOpponents = 0;
 
@@ -51,8 +52,8 @@ public class Model {
         if (opponentNameList.contains(name)){
             opponentNameList.remove(name);
         }
-        Player playerOne = new Player(name, false);
-        players.add(playerOne);
+        playerOne = new Player(name, false);
+        COMplayers.add(playerOne); // TEMPORARY, will be removed by end of constructor
 
         while (numOpponents == 0){
             System.out.print("Enter number of opponents: ");
@@ -73,12 +74,12 @@ public class Model {
         System.out.print("Your opponents are: ");
         String currName;
         for (int x = 0; x < numOpponents; x++){
-			if (oppoentNameList.isEmpty()){ currname = "NULL"; } // too few names
+			if (opponentNameList.isEmpty()){ currName = "NULL"; } // too few names
             else {
-				currName = opponentNames.get(rand.nextInt(opponentNameList.size()));
+				currName = opponentNameList.get(rand.nextInt(opponentNameList.size()));
             	opponentNameList.remove(currName);
 			}
-            players.add(new Player(currName, true));
+            COMplayers.add(new Player(currName, true));
             if ((numOpponents - x) == 2){
                 System.out.printf("%s, and");
             }else if ((numOpponents - x) == 1){
@@ -89,12 +90,14 @@ public class Model {
 		System.out.println(".");
 
 		// Initialize opponent lists.
-		for (Player p : players){
+		for (Player p : COMplayers){
 			HashSet<Player> pOpponents = new HashSet<>();
-			pOpponents.addAll(players);
+			pOpponents.addAll(COMplayers);
 			pOpponents.remove(p);
 			p.addOpponents(pOpponents);
 		}
+
+        COMplayers.remove(playerOne);
 
     }
 
@@ -109,17 +112,24 @@ public class Model {
 	 */
 	public void runGame(){
 
-		Decision d1;
-		Decision d2;
-		int userInput = 0;
-		int curr_turn;
+		int userInput = -1;
+		int curr_turn = 0;
+
+        Decision d1;
+        Decision d2;
+
+        Player sabotageTarget;
+        Player target;
 
 		while (true){
 			curr_turn++;
 
 			// Evaluate which players have won, if any
-			for (Player p : players){
-				if (p.getResearchPoints >= 10){
+            if (playerOne.getResearchPoints() >= 10){
+                winners.add(playerOne);
+            }
+			for (Player p : COMplayers){
+				if (p.getResearchPoints() >= 10){
 					winners.add(p);
 				}
 			}
@@ -133,6 +143,7 @@ public class Model {
 				break;
 			}
 
+            // game turn UI (basic console text for now)
 			System.out.println("\n------------------------------");
 			System.out.println(String.format("-----------TURN %d-------------", curr_turn));
 			System.out.println("------------------------------\n");
@@ -140,28 +151,107 @@ public class Model {
 			System.out.println("\tChoose an action.");
 			if (curr_turn == 5){ System.out.println("The NUCLEAR option is now available."); }
 			if (curr_turn < 5){
-				System.out.println("\tRESEARCH\t|\tESPIONAGE\t|\tSABOTAGE");
+				System.out.println("\tRESEARCH (0)\t|\tESPIONAGE (1)\t|\tSABOTAGE (2)");
 				System.out.println("\t\t0\t\t|\t\t1\t\t|\t\t2");
 			}else{
-				System.out.println("\tRESEARCH\t|\tESPIONAGE\t|\tSABOTAGE\t|\tNUCLEAR");
+				System.out.println("\tRESEARCH (0)\t|\tESPIONAGE (1)\t|\tSABOTAGE (2)\t|\tNUCLEAR (3)");
 				System.out.println("\t\t0\t\t|\t\t1\t\t|\t\t2\t\t|\t\t3");
 			}
 			
-			while (userInput < 0 || userInput > 3){
+			// user selects actions for turn
+            while (userInput < 0 || userInput > 3){
 				System.out.println("Please choose your first action.");
 				userInput = in.nextInt();
 			}
 
+            // those actions are set
 			switch (userInput){
 				case 0:
-					//TODO
+					d1 = Decision.RESEARCH;
+                    break;
+                case 1:
+                    d1 = Decision.ESPIONAGE;
+                    target = playerGetTarget();
+                    playerOne.playerSetTarget(d1, target, true);
+                    break;
+                case 2:
+                    d1 = Decision.SABOTAGE;
+                    target = playerGetTarget();
+                    playerOne.playerSetTarget(d1, target, true);
+                    break;
+                case 3:
+                    d1 = Decision.NUCLEAR;
+                    target = playerGetTarget();
+                    playerOne.playerSetTarget(d1, target, true);
 			}
+
+            if (userInput != 3){
+                // user selects actions for turn
+                while (userInput < 0 || userInput > 2){
+                    System.out.println("Please choose your second action.");
+                    userInput = in.nextInt();
+                }
+                switch (userInput){
+                    case 0:
+                        d2 = Decision.RESEARCH;
+                        break;
+                    case 1:
+                        d2 = Decision.ESPIONAGE;
+                        target = playerGetTarget();
+                        playerOne.playerSetTarget(d2, target, false);
+                        break;
+                    case 2:
+                        d2 = Decision.SABOTAGE;
+                        target = playerGetTarget();
+                        playerOne.playerSetTarget(d2, target, false);
+                        break;
+                }
+            }
+
+            for (Player p : COMplayers){
+                p.computerChooseDecision(curr_turn);
+            }
+
+            playerOne.passTurn();
+            for (Player p : COMplayers){
+                p.passTurn();
+            }
 
 		}
 
 		System.out.println("The winner is: " + winners.get(0).getID() + "!");
 		System.out.println("The game will now exit.");
 	}
+
+    /**
+     * Prompts a Player to choose a target.
+     * */
+    public Player playerGetTarget(){
+        String userInput = "";
+        Player target = null;
+
+        System.out.println("------------------");
+        System.out.println("AVAILABLE TARGETS:");
+        for (Player p : COMplayers){
+            System.out.println(p);
+        }
+        System.out.println("------------------");
+
+        // user selects target for turn
+        while (target == null){
+            System.out.println("Please choose your target.");
+            userInput = in.next();
+            playerOne.opponentLookup(userInput);
+        }
+
+        return target;
+
+    }
+
+    public void breaktie(ArrayList<Player> winners){
+
+
+    }
 
 
 }
