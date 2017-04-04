@@ -1,3 +1,5 @@
+package ArmsRace;
+
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Random;
@@ -18,7 +20,8 @@ public class Model {
 	// CONSTANTS
 
     private final int DEFAULT_NUM_OPPONENTS = 2;
-    private final Random rand = new Random();
+    private final int RESEARCH_TARGET = 20;
+    static Random rand = new Random();
     private final Scanner in = new Scanner(System.in);
 
 	// STATE
@@ -36,6 +39,7 @@ public class Model {
 	 *			selected
 	 */
     public Model(ArrayList<String> opponentNameList){
+        rand.setSeed(1000);
         String name = null;
 
         while (name == null) {
@@ -81,7 +85,7 @@ public class Model {
 			}
             COMplayers.add(new Player(currName, true));
             if ((numOpponents - x) == 2){
-                System.out.printf("%s, and", currName);
+                System.out.printf("%s, and ", currName);
             }else if ((numOpponents - x) == 1){
                 System.out.printf("%s.\n", currName);
             }else {
@@ -125,11 +129,11 @@ public class Model {
 			curr_turn++;
 
 			// Evaluate which players have won, if any
-            if (playerOne.getResearchPoints() >= 10){
+            if (playerOne.getResearchPoints() >= RESEARCH_TARGET){
                 winners.add(playerOne);
             }
 			for (Player p : COMplayers){
-				if (p.getResearchPoints() >= 10){
+				if (p.getResearchPoints() >= RESEARCH_TARGET){
 					winners.add(p);
 				}
 			}
@@ -148,7 +152,10 @@ public class Model {
 			System.out.println(String.format("-----------TURN %d-------------", curr_turn));
 			System.out.println("------------------------------\n");
 
-			System.out.println("\tChoose an action.");
+            System.out.println(String.format("CURRENT RESEARCH POINTS: %d", playerOne.getResearchPoints()));
+            playerOne.printOpponentsValues();
+
+			System.out.println("\tAvailable actions:");
 			if (curr_turn == 5){ System.out.println("The NUCLEAR option is now available."); }
 			if (curr_turn < 5){
 				System.out.println("\tRESEARCH (0)\t|\tESPIONAGE (1)\t|\tSABOTAGE (2)");
@@ -218,6 +225,17 @@ public class Model {
             for (Player p : COMplayers){
                 p.passTurn();
             }
+            // REPORT (DEBUG)
+            playerOne.debugPrint("-----------\nREPORT: POINTS\n-----------");
+            playerOne.debugPrint(String.format("%s : %d", playerOne.getID(), playerOne.getResearchPoints()));
+            for (Player p : COMplayers) {
+                p.debugPrint(String.format("%s : %d", p.getID(), p.getResearchPoints()));
+            }
+            playerOne.debugPrint("-----------");
+
+            userInput = -1;
+            d1 = Decision.NONE;
+            d2 = Decision.NONE;
 
 		}
 
@@ -230,12 +248,12 @@ public class Model {
      * */
     public Player playerGetTarget(){
         String userInput = "";
-        Player target = null;
+        Player.Opponent target = null;
 
         System.out.println("------------------");
         System.out.println("AVAILABLE TARGETS:");
         for (Player p : COMplayers){
-            System.out.println(p);
+            System.out.println(p.getID());
         }
         System.out.println("------------------");
 
@@ -243,10 +261,10 @@ public class Model {
         while (target == null){
             System.out.println("Please choose your target.");
             userInput = in.next();
-            playerOne.opponentLookup(userInput);
+            target = playerOne.opponentLookup(userInput);
         }
 
-        return target;
+        return target.getPlayer();
 
     }
 

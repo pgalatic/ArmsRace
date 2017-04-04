@@ -1,8 +1,9 @@
-import java.io.IOException;
+package ArmsRace;
+
 import java.util.*;
-import java.util.logging.FileHandler;
 import java.util.logging.Level;
-import java.util.logging.Logger;
+
+import static ArmsRace.Main.LOGGER;
 
 /**
  * Class representing a player in the AI Arms Race game. Available functions
@@ -15,14 +16,14 @@ public class Player {
 
     //  CONSTANTS
 
-    private static final Random rand = new Random();
-    private static final Logger LOGGER = Logger.getLogger( Player.class.getName() );
-    private static FileHandler HANDLER;
+    private Random seeder = Model.rand;
+    private Random rand;
+    private static final boolean DEBUG = true;
 
     private static final int TOTAL_TURNS = 10;
     private static final int TURN_NUCLEAR_AVAILABLE = 5;
     private static final int BASE_NUKE_DEFENSE = 0;
-    private static final int BASE_WEIGHT = 5;
+    private static final int BASE_WEIGHT = 2;
     private static final int BASE_ADD_THREAT = 2;
     private static final int BASE_ADD_EXTREME_THREAT = 5;
     private static final int BASE_NUCLEAR_THREAT_THRESHHOLD = 10;
@@ -57,14 +58,8 @@ public class Player {
     public Player(String ID, boolean computer){
         this.ID = ID;
         this.computer = computer;
-
-        try {
-            HANDLER = new FileHandler("log.txt");
-            LOGGER.addHandler(HANDLER);
-        } catch (IOException e){
-            e.printStackTrace();
-            assert(false);
-        }
+        this.rand = new Random();
+        this.rand.setSeed(seeder.nextLong());
     }
 
     /**
@@ -236,6 +231,12 @@ public class Player {
             }
         }
 
+        // negatives screw up the calculations
+        researchWeight = researchWeight < 0 ? 0 : researchWeight;
+        espionageWeight = espionageWeight < 0 ? 0 : espionageWeight;
+        sabotageWeight = sabotageWeight < 0 ? 0 : sabotageWeight;
+        nuclearWeight = nuclearWeight < 0 ? 0 : nuclearWeight;
+
         Map<Model.Decision, Double> options = new HashMap<>();
         options.put(Model.Decision.RESEARCH, researchWeight);
         options.put(Model.Decision.ESPIONAGE, espionageWeight);
@@ -247,6 +248,12 @@ public class Player {
             decisionTwo = Model.Decision.NUCLEAR;
         }else{
             options.remove(Model.Decision.NUCLEAR);
+            if (espionageTargetTwo == null){
+                options.remove(Model.Decision.ESPIONAGE);
+            }
+            if (sabotageTargetTwo == null){
+                options.remove(Model.Decision.SABOTAGE);
+            }
             decisionTwo = getWeightedRandom(options, rand);
         }
 
@@ -285,6 +292,9 @@ public class Player {
      */
     public void passTurn(){
 
+        // passive research gain
+        researchPoints++;
+
         // assert that we have valid targets
         if (decisionOne == Model.Decision.ESPIONAGE){
             assert(espionageTargetOne != null);
@@ -306,32 +316,28 @@ public class Player {
 
         if (    decisionOne == Model.Decision.NUCLEAR &&
                 decisionTwo == Model.Decision.NUCLEAR){
-                nuclearTarget.player.nukedBy(this.ID);
-
-                LOGGER.log(Level.FINE, "{0} chose NUCLEAR: {1}",
-                    new Object[]{this.ID, nuclearTarget.getID()});
+            debugPrint(String.format("%s chose NUCLEAR: %s", this.ID, nuclearTarget.getID()));
+            nuclearTarget.player.nukedBy(this.ID);
         }else{
             // EXECUTE DECISION ONE
             switch (decisionOne){
                 case RESEARCH:
-                    researchPoints++;
-
-                    LOGGER.log(Level.FINE, "{0} chose RESEARCH", this.ID);
+                    debugPrint(String.format("%s chose RESEARCH ", this.ID));
+                    int i = rand.nextInt(4);
+                    if (i > 0){ researchPoints++; }
+                    else if (!computer){ System.out.println("RESEARCH FAILED!"); }
+                    else { debugPrint(String.format("%s: FAILED RESEARCH", this.ID)); }
                     break;
                 case ESPIONAGE:
+                    debugPrint(String.format("%s chose ESPIONAGE: %s", this.ID, espionageTargetOne.getID()));
                     espionageTargetOne.lastKnownResearchPoints =
                             espionageTargetOne.player.getResearchPoints();
                     espionageTargetOne = null;
-
-                    LOGGER.log(Level.FINE, "{0} chose ESPIONAGE: {1}",
-                            new Object[]{this.ID, espionageTargetOne.getID()});
                     break;
                 case SABOTAGE:
+                    debugPrint(String.format("%s chose SABOTAGE: %s", this.ID, sabotageTargetOne.getID()));
                     sabotageTargetOne.player.sabotagedBy(ID);
                     sabotageTargetOne = null;
-
-                    LOGGER.log(Level.FINE, "{0} chose SABOTAGE: {1}",
-                            new Object[]{this.ID, sabotageTargetOne.getID()});
                     break;
                 default:
                     throw new InputMismatchException("Bad decisionOne for " + ID){};
@@ -340,27 +346,28 @@ public class Player {
             // EXECUTE DECISION TWO
             switch (decisionTwo){
                 case RESEARCH:
-                    researchPoints++;
-
-                    LOGGER.log(Level.FINE, "{0} chose RESEARCH", this.ID);
+                    debugPrint(String.format("%s chose RESEARCH", this.ID));
+                    int i = rand.nextInt(4);
+                    if (i > 0){ researchPoints++; }
+                    else if (!computer){ System.out.println("RESEARCH FAILED!"); }
+                    else { debugPrint(String.format("%s: FAILED RESEARCH", this.ID)); }
                     break;
                 case ESPIONAGE:
+                    debugPrint(String.format("%s chose ESPIONAGE: %s", this.ID, espionageTargetTwo.getID()));
                     espionageTargetTwo.lastKnownResearchPoints =
                             espionageTargetTwo.player.getResearchPoints();
-
-                    LOGGER.log(Level.FINE, "{0} chose ESPIONAGE: {1}",
-                            new Object[]{this.ID, espionageTargetTwo.getID()});
+                    espionageTargetTwo = null;
                     break;
                 case SABOTAGE:
+                    debugPrint(String.format("%s chose SABOTAGE: %s", this.ID, sabotageTargetTwo.getID()));
                     sabotageTargetTwo.player.sabotagedBy(ID);
-
-                    LOGGER.log(Level.FINE, "{0} chose SABOTAGE: {1}",
-                            new Object[]{this.ID, sabotageTargetOne.getID()});
+                    sabotageTargetTwo = null;
                     break;
                 default:
                     throw new InputMismatchException("Bad decisionTwo for " + ID){};
 
             }
+
 
         }
 
@@ -379,8 +386,10 @@ public class Player {
         int result = rand.nextInt(2);
         if (result == 0){
             researchPoints--;
-            recentlySabotagedBy.add(opponentLookup(ID));
+        }else{
+            researchPoints -= 2;
         }
+        recentlySabotagedBy.add(opponentLookup(ID));
     }
 
     /**
@@ -436,6 +445,36 @@ public class Player {
         return decisions;
     }
 
+    public void printOpponentsValues(){
+        System.out.println("--LAST KNOWN RESEARCH VALUES--");
+        for (Opponent o : opponents){
+            System.out.println(String.format("%s: %d", o.getID(), o.lastKnownResearchPoints));
+        }
+        System.out.println();
+    }
+
+    public void damageReport(){
+        if (!recentlySabotagedBy.isEmpty() || !recentlyNukedBy.isEmpty() || !recentlyNukeFailedBy.isEmpty()) {
+            System.out.println("--WARNING: RECENTLY ATTACKED!--");
+            for (Opponent o : recentlySabotagedBy){
+                System.out.println(String.format("SABOTAGED BY: %s", o.getID()));
+            }
+            for (Opponent o : recentlyNukedBy){
+                System.out.println(String.format("NUKED BY: %s", o.getID()));
+            }
+            for (Opponent o : recentlyNukeFailedBy){
+                System.out.println(String.format("ATTEMPTED NUCLEAR STRIKE BY: %s", o.getID()));
+            }
+            System.out.println("-------------------------------");
+        }
+    }
+
+    public void debugPrint(String msg){
+        if (DEBUG){
+            System.out.println(msg);
+        }
+    }
+
     @Override
     public boolean equals(Object o){
         if (!(o instanceof Player)){
@@ -448,15 +487,22 @@ public class Player {
         return false;
     }
 
+    @Override
+    public String toString(){
+        return ID;
+    }
+
     /** A class representing an Opponent, which is distinct from a Player only
      * insofar as the computer having to make decisions about which Players to
      * prioritize spying on, sabotaging, or launching nuclear weapons against.
      */
     public class Opponent{
 
+        private final int BASE_THREAT = 3;
+
         private int turnsSinceLastEspionage = 0;
         private int lastKnownResearchPoints = 0;
-        private int threatLevel = 0;
+        private int threatLevel = BASE_THREAT;
         private Player player;
 
         private Opponent(Player p){
@@ -464,7 +510,6 @@ public class Player {
         }
 
         private void updateThreatAmount(Model.Decision d){
-            threatDecay();
             switch (d){
                 case SABOTAGE:
                     threatLevel += BASE_ADD_THREAT;
@@ -476,11 +521,13 @@ public class Player {
             threatLevel += (lastKnownResearchPoints - researchPoints);
         }
 
-        private void threatDecay(){ threatLevel = (threatLevel * 5) / 6; }
+        //private void threatDecay(){ threatLevel = (threatLevel * 5) / 6; }
 
         private void resetThreat(){ threatLevel = 0; }
 
         public String getID(){ return player.getID(); }
+
+        public Player getPlayer(){ return player; }
 
     }
 
