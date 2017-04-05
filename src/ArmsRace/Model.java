@@ -152,6 +152,8 @@ public class Model {
 			System.out.println(String.format("-----------TURN %d-------------", curr_turn));
 			System.out.println("------------------------------\n");
 
+            playerOne.damageReport();
+
             System.out.println(String.format("CURRENT RESEARCH POINTS: %d", playerOne.getResearchPoints()));
             playerOne.printOpponentsValues();
 
@@ -164,10 +166,17 @@ public class Model {
 			}
 			
 			// user selects actions for turn
-            while (userInput < 0 || userInput > 3){
-				System.out.println("Please choose your first action.");
-				userInput = in.nextInt();
-			}
+            if (curr_turn < 5){
+                while (userInput < 0 || userInput > 2){
+                    System.out.println("Please choose your first action.");
+                    userInput = in.nextInt();
+                }
+            }else{
+                while (userInput < 0 || userInput > 3){
+                    System.out.println("Please choose your first action.");
+                    userInput = in.nextInt();
+                }
+            }
 
             // those actions are set
 			switch (userInput){
@@ -176,8 +185,6 @@ public class Model {
                     break;
                 case 1:
                     d1 = Decision.ESPIONAGE;
-                    target = playerGetTarget();
-                    playerOne.playerSetTarget(d1, target, true);
                     break;
                 case 2:
                     d1 = Decision.SABOTAGE;
@@ -186,6 +193,7 @@ public class Model {
                     break;
                 case 3:
                     d1 = Decision.NUCLEAR;
+                    d2 = Decision.NUCLEAR;
                     target = playerGetTarget();
                     playerOne.playerSetTarget(d1, target, true);
                     break;
@@ -204,8 +212,6 @@ public class Model {
                         break;
                     case 1:
                         d2 = Decision.ESPIONAGE;
-                        target = playerGetTarget();
-                        playerOne.playerSetTarget(d2, target, false);
                         break;
                     case 2:
                         d2 = Decision.SABOTAGE;
@@ -213,9 +219,9 @@ public class Model {
                         playerOne.playerSetTarget(d2, target, false);
                         break;
                 }
-
-                playerOne.playerChooseDecision(d1, d2);
             }
+
+            playerOne.playerChooseDecision(d1, d2);
 
             for (Player p : COMplayers){
                 p.computerChooseDecision(curr_turn);
@@ -225,6 +231,11 @@ public class Model {
             for (Player p : COMplayers){
                 p.passTurn();
             }
+            playerOne.updateEspionage();
+            for (Player p : COMplayers){
+                p.updateEspionage();
+            }
+
             // REPORT (DEBUG)
             playerOne.debugPrint("-----------\nREPORT: POINTS\n-----------");
             playerOne.debugPrint(String.format("%s : %d", playerOne.getID(), playerOne.getResearchPoints()));
