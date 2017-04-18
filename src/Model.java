@@ -17,7 +17,7 @@ public class Model {
 
 	// CONSTANTS
 
-	private static final String H_LINE = "------------------";
+	private static final String H_LINE = "----------------------------";
     private final int DEFAULT_NUM_OPPONENTS = 2;
     private final int RESEARCH_TARGET = 20;
     static Random rand = new Random();

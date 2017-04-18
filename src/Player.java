@@ -14,7 +14,7 @@ public class Player {
 
     private Random seeder = Model.rand;
     private Random rand;
-    private static final boolean DEBUG = false;
+    private static final boolean DEBUG = true;
 
     private static final int TURN_NUCLEAR_AVAILABLE = 5;
 
@@ -22,8 +22,6 @@ public class Player {
     private static final int TURN_RESEARCH_INFLECTION = 5;
     private static final int BASE_NUKE_DEFENSE = 0;
     private static final int BASE_WEIGHT = 2;
-    private static final int BASE_ADD_THREAT = 2;
-    private static final int BASE_ADD_EXTREME_THREAT = 5;
     private static final int BASE_NUCLEAR_THREAT_THRESHHOLD = 5;
 
     // chance for research to succeed is 1/this value
@@ -316,6 +314,7 @@ public class Player {
                 case SABOTAGE:
                     debugPrint(String.format("%s chose SABOTAGE: %s", this.ID, sabotageTargetOne.getID()));
                     sabotageTargetOne.player.sabotagedBy(ID);
+					sabotageTargetOne.reduceThreat(-2); //TODO make constant
                     sabotageTargetOne = null;
                     break;
                 default:
@@ -339,6 +338,7 @@ public class Player {
                 case SABOTAGE:
                     debugPrint(String.format("%s chose SABOTAGE: %s", this.ID, sabotageTargetTwo.getID()));
                     sabotageTargetTwo.player.sabotagedBy(ID);
+					sabotageTargetTwo.reduceThreat(-2); //TODO make constant
                     sabotageTargetTwo = null;
                     break;
                 default:
@@ -497,6 +497,9 @@ public class Player {
     public class Opponent{
 
         private final int BASE_THREAT = 2;
+    	private final int BASE_ADD_THREAT = 1;
+    	private final int BASE_ADD_EXTREME_THREAT = 3;
+		private final int NO_THREAT_THRESHOLD = -7;
 
         private int lastKnownResearchPoints = 0;
         private int threatLevel = BASE_THREAT;
@@ -515,12 +518,22 @@ public class Player {
                     threatLevel += BASE_ADD_EXTREME_THREAT;
                     break;
             }
-            threatLevel += (lastKnownResearchPoints - researchPoints);
+			updateThreatAmount();
+			
         }
 
         private void updateThreatAmount(){
-            threatLevel = (lastKnownResearchPoints - researchPoints);
-        }
+            int researchDifference = lastKnownResearchPoints - researchPoints;
+			if (researchDifference <= NO_THREAT_THRESHOLD){
+				threatLevel = BASE_THREAT;
+			}else{
+            	threatLevel += researchDifference;
+			}        
+		}
+
+		private void reduceThreat(int val){
+			threatLevel -= val;
+		}
 
         //private void threatDecay(){ threatLevel = (threatLevel * 5) / 6; }
 
