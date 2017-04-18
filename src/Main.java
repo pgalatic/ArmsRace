@@ -17,18 +17,22 @@ public class Main {
 
 	// TODO add name list for system argument
     public static void main(String[] args) {
-		File opponentFile = new File("../resources/opponents.txt");
-		try {
-			//HANDLER = new ConsoleHandler();
-			//LOGGER.getLogger("").addHandler(HANDLER);
-			Scanner in = new Scanner(opponentFile);
-			while (in.hasNextLine()){
-				opponents.add(in.nextLine());
+		javax.swing.SwingUtilities.invokeLater(new Runnable() {
+			public void run(){
+				File opponentFile = new File("../resources/opponents.txt");
+				try {
+					//HANDLER = new ConsoleHandler();
+					//LOGGER.getLogger("").addHandler(HANDLER);
+					Scanner in = new Scanner(opponentFile);
+					while (in.hasNextLine()){
+						opponents.add(in.nextLine());
+					}
+					Model game = new Model(opponents);
+					game.runGame();
+				} catch (IOException e){
+					e.printStackTrace();
+				}
 			}
-			Model game = new Model(opponents);
-			game.runGame();
-		} catch (IOException e){
-			e.printStackTrace();
-		}
+		});
     }
 }

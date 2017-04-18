@@ -14,7 +14,7 @@ public class Player {
 
     private Random seeder = Model.rand;
     private Random rand;
-    private static final boolean DEBUG = true;
+    private static final boolean DEBUG = false;
 
     private static final int TURN_NUCLEAR_AVAILABLE = 5;
 
