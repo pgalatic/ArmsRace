@@ -2,6 +2,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Random;
 import java.util.Scanner;
+import java.util.InputMismatchException;
 
 /**
  * Model representing the overall State of the game, without the clutter of
@@ -17,7 +18,7 @@ public class Model {
 
 	// CONSTANTS
 
-	private static final String H_LINE = "----------------------------";
+	private static final String H_LINE = "------------------------------";
     private final int DEFAULT_NUM_OPPONENTS = 2;
     private final int RESEARCH_TARGET = 20;
     static Random rand = new Random();
@@ -27,6 +28,7 @@ public class Model {
 
     private Player playerOne;
 	private HashSet<Player> COMplayers = new HashSet<>();
+	private ArrayList<Player> passedGoal = new ArrayList<>();
 	private ArrayList<Player> winners = new ArrayList<>();
     private int numOpponents = 0;
 
@@ -129,19 +131,33 @@ public class Model {
 
 			// Evaluate which players have won, if any
             if (playerOne.getResearchPoints() >= RESEARCH_TARGET){
-                winners.add(playerOne);
+                passedGoal.add(playerOne);
             }
 			for (Player p : COMplayers){
 				if (p.getResearchPoints() >= RESEARCH_TARGET){
-					winners.add(p);
+					passedGoal.add(p);
 				}
 			}
 			// If any players have won, quit, UNLESS there's a tie
-			if (winners.size() > 0){
-				if (winners.size() > 1){
-					System.out.println("There's a tie!");
-					breaktie(winners);
+			if (passedGoal.size() > 0){
+				if (passedGoal.size() > 1){
+					int maxPoints = 0;		// current maximum
+					for (Player p : passedGoal){
+						int currPoints = p.getResearchPoints();
+						if (currPoints > maxPoints){
+							maxPoints = currPoints;
+							winners.clear();
+							winners.add(p);
+						}else if (currPoints == maxPoints){
+							winners.add(p);
+						}
+					}
+					if (winners.size() > 0){
+						System.out.println("There's a tie!");
+						breaktie(winners);
+					}	
 				}
+				System.out.println("The winner is: " + winners.get(0).getID() + "!");
 				break;
 			}
 
@@ -167,12 +183,22 @@ public class Model {
             if (curr_turn < 5){
                 while (userInput < 0 || userInput > 2){
                     System.out.println("Please choose your first action.");
-                    userInput = in.nextInt();
+					try {
+                    	userInput = in.nextInt();
+					} catch (InputMismatchException e){
+						in.next();
+						userInput = -1;
+					}
                 }
             }else{
                 while (userInput < 0 || userInput > 3){
                     System.out.println("Please choose your first action.");
-                    userInput = in.nextInt();
+                    try {
+                    	userInput = in.nextInt();
+					} catch (InputMismatchException e){
+						in.next();
+						userInput = -1;
+					}
                 }
             }
 
@@ -202,8 +228,12 @@ public class Model {
                 userInput = -1;
                 while (userInput < 0 || userInput > 2){
                     System.out.println("Please choose your second action.");
-                    userInput = in.nextInt();
-                }
+                    try {
+                    	userInput = in.nextInt();
+					} catch (InputMismatchException e){
+						in.next();
+						userInput = -1;
+					}                }
                 switch (userInput){
                     case 0:
                         d2 = Decision.RESEARCH;
@@ -254,10 +284,6 @@ public class Model {
             System.out.println(String.format("%s : %d", p.getID(), p.getResearchPoints()));
         }
         System.out.println("-----------");
-
-		if (winners.size() == 0){
-			System.out.println("The winner is: " + winners.get(0).getID() + "!");
-		}
 		System.out.println("The game will now exit.");
 	}
 
