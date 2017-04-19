@@ -14,7 +14,7 @@ public class Player {
 
     private Random seeder = Model.rand;
     private Random rand;
-    private static final boolean DEBUG = false;
+    private static final boolean DEBUG = true;
 
     private static final int TURN_NUCLEAR_AVAILABLE = 5;
 
@@ -174,7 +174,6 @@ public class Player {
             // SABOTAGE DECISION PATH
             currSabotageValue = o.threatLevel * BASE_WEIGHT;
             sabotageWeight += currSabotageValue;
-			sabotageWeight *= 2;
 			if (turn < 2){ currSabotageValue = 0; sabotageWeight = 0; }
             if (currSabotageValue > maxSabotageValue){
                 maxSabotageValue = currSabotageValue;
@@ -498,7 +497,7 @@ public class Player {
 
         private final int BASE_THREAT = 2;
     	private final int BASE_ADD_THREAT = 1;
-    	private final int BASE_ADD_EXTREME_THREAT = 3;
+    	private final int BASE_ADD_EXTREME_THREAT = 2;
 		private final int NO_THREAT_THRESHOLD = -7;
 
         private int lastKnownResearchPoints = 0;
